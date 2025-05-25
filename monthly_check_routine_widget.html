@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kid's Awesome Monthly Calendar - Refined UI</title>
+    <style>
+        body {
+            font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #ffffff; /* White background */
+            margin: 10px;
+            margin-bottom: 20px;
+            color: #333;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .calendar-widget {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+            box-shadow: none;
+            width: 95%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+        }
+
+        .calendar-header button.nav-arrow {
+            border: none;
+            background-color: transparent;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 1.8em;
+            cursor: pointer;
+            transition: color 0.3s ease, transform 0.2s ease;
+            line-height: 1;
+            color: #625bad;
+        }
+        .calendar-header button.nav-arrow:hover:not(:disabled) { color: #4a428a; transform: scale(1.1); }
+        .calendar-header button.nav-arrow:active:not(:disabled) { transform: scale(0.95); }
+
+        #month-year {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #625bad;
+            text-align: center;
+            flex-grow: 1;
+            background-color: #e8eaf6;
+            padding: 6px 12px;
+            border-radius: 12px;
+            margin: 0 8px;
+        }
+        
+        .header-right-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #file-ops-icon-btn {
+            background-color: #e0e0e0; /* MODIFIED: Light grey background */
+            color: #625bad;             /* MODIFIED: Dark purple icon for contrast */
+            border: 1px solid #ccc; /* Subtle border for definition */
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            font-size: 1.5em; 
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Softer shadow */
+            transition: background-color 0.3s ease, transform 0.2s ease, border-color 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #file-ops-icon-btn:hover:not(:disabled) {
+            background-color: #d5d5d5; /* Slightly darker grey on hover */
+            border-color: #bbb;
+            transform: scale(1.05); /* More subtle hover scale */
+        }
+         #file-ops-icon-btn:disabled {
+            background-color: #f5f5f5; /* Lighter grey when disabled */
+            color: #aaa;
+            border-color: #e0e0e0;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .day-name {
+            font-weight: bold; color: #555;
+            padding-bottom: 5px;
+            font-size: 0.8em;
+            text-align: center;
+        }
+        .date-cell {
+            background-color: rgba(230, 230, 230, 0.25);
+            min-height: 65px;
+            display: flex;
+            flex-direction: column; justify-content: space-around; align-items: center;
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            position: relative;
+            padding: 4px 0;
+        }
+        .date-cell:active:not(.empty) { transform: scale(0.97); }
+        .date-cell.empty { background-color: transparent; }
+        .date-cell.empty .day-number, .date-cell.empty .date-cell-buttons { visibility: hidden; }
+
+        .date-cell .day-number {
+            font-size: 1.15em;
+            margin-bottom: 4px;
+            pointer-events: none;
+            color: #333;
+        }
+        .date-cell-buttons {
+            display: flex; justify-content: center; align-items: center;
+            gap: 6px; width: 100%;
+        }
+        .date-cell-buttons button {
+            border: none; background-color: transparent; width: 26px; height: 26px;
+            border-radius: 50%; cursor: pointer; font-size: 1.1em;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            display: flex; justify-content: center; align-items: center; line-height: 1;
+        }
+        .date-cell-buttons button:hover { transform: scale(1.2); opacity: 0.8; }
+        .date-cell-buttons button:active { transform: scale(1.05); opacity: 1; }
+
+        .date-cell.red-bg { background-color: #ffd5d5; }
+        .date-cell.red-bg .day-number { color: #c0392b; }
+        .date-cell.green-bg { background-color: #d0f0d0; }
+        .date-cell.green-bg .day-number { color: #27ae60; }
+
+        .popup-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .popup-overlay.show { opacity: 1; visibility: visible; }
+
+        .popup-content-base {
+            background-color: white; 
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%; max-width: 360px;
+            position: relative;
+        }
+        .popup-content-base h3 { color: #625bad; margin-top: 0; margin-bottom: 15px; font-size: 1.3em;}
+        .popup-content-base p { margin-bottom: 15px; font-size: 1em; color: #444; line-height: 1.4; }
+        
+        .popup-content-base button:not(.popup-close-btn) {
+            background-color: transparent;
+            border: 1px solid #ccc; 
+            color: #337ab7; 
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 0.95em;
+            font-weight: bold; cursor: pointer; margin: 8px 5px;
+            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease; min-width: 100px;
+        }
+        .popup-content-base button:not(.popup-close-btn):hover {
+            background-color: #f0f0f0;
+            border-color: #aaa;
+        }
+        #confirm-action, #file-options-save-btn, #reminder-save-now-btn {
+            background-color: #5cb85c; color: white; border-color: #5cb85c;
+        }
+        #confirm-action:hover, #file-options-save-btn:hover, #reminder-save-now-btn:hover {
+             background-color: #4cae4c; border-color: #4cae4c;
+        }
+        #file-options-load-btn {
+            background-color: #f0ad4e; color: white; border-color: #f0ad4e;
+        }
+        #file-options-load-btn:hover {
+            background-color: #ec971f; border-color: #ec971f;
+        }
+        #reset-color { display: none; background-color: #f0ad4e; color:white; border-color:#f0ad4e;}
+        #reset-color:hover { background-color: #ec971f; border-color:#ec971f;}
+        #cancel-action, #reminder-dismiss-btn {
+             background-color: #d9534f; color: white; border-color: #d9534f;
+        }
+        #cancel-action:hover, #reminder-dismiss-btn:hover {
+            background-color: #c9302c; border-color: #c9302c;
+        }
+
+        .popup-close-btn {
+            position: absolute; top: 10px; right: 15px;
+            background: none; border: none; font-size: 1.8em; color: #aaa;
+            cursor: pointer; padding: 5px; line-height: 1;
+        }
+        .popup-close-btn:hover { color: #777; }
+
+        #file-options-popup #file-status-message { font-size: 0.9em; font-weight: bold; min-height: 1.2em; margin-top: 10px; margin-bottom: 15px; }
+        #file-options-popup #fs-api-status { color: #777; font-style: italic; font-size: 0.8em; margin-bottom: 15px; }
+
+        .today .day-number {
+            font-weight: bold; color: #ff69b4 !important;
+            border: 2px solid #ff69b4;
+            border-radius: 50%; width: 28px; height: 28px; display: flex;
+            justify-content: center; align-items: center; box-sizing: border-box; margin-bottom: 4px;
+            background-color: rgba(255, 105, 180, 0.05);
+        }
+        .date-cell.empty .today .day-number { border: none; background-color: transparent; }
+
+        .sparkle { /* Same */ } @keyframes sparkle-animation { /* Same */ }
+
+        .reminder-popup {
+            position: fixed; bottom: 10px;
+            left: 50%; transform: translateX(-50%);
+            background-color: #e9edf5;
+            color: #334d6e;
+            padding: 12px 18px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 998; display: flex; align-items: center; gap: 15px;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .reminder-popup.hidden { opacity: 0; transform: translateX(-50%) translateY(100px); pointer-events: none;}
+        .reminder-popup p { margin: 0; font-size: 0.9em; }
+        .reminder-popup button {
+            padding: 6px 10px; font-size: 0.85em;
+        }
+    </style>
+</head><body>
+
+<div class="calendar-widget">
+    <div class="calendar-header">
+        <button id="prev-month" class="nav-arrow" aria-label="Previous Month">⬅️</button>
+        <h2 id="month-year"></h2>
+        <div class="header-right-controls">
+            <button id="next-month" class="nav-arrow" aria-label="Next Month">➡️</button>
+            <button id="file-ops-icon-btn" title="File Options">💾</button>
+        </div>
+    </div>
+    <div class="calendar-grid" id="calendar-grid"></div>
+</div>
+
+<div id="file-options-popup" class="popup-overlay">
+    <div class="popup-content-base">
+        <button class="popup-close-btn" id="file-options-close-btn" aria-label="Close">&times;</button>
+        <h3>File Options</h3>
+        <div class="action-buttons">
+            <button id="file-options-save-btn">Save to File</button>
+            <button id="file-options-load-btn">Load from File</button>
+        </div>
+        <p id="file-status-message"></p>
+        <p id="fs-api-status"></p>
+    </div>
+</div>
+
+<div id="confirmation-popup" class="popup-overlay">
+    <div class="popup-content-base">
+        <p id="popup-message">Are you sure?</p>
+        <button id="confirm-action">Yes</button>
+        <button id="reset-color">Reset Day</button>
+        <button id="cancel-action">No</button>
+    </div>
+</div>
+
+<div id="save-reminder-popup" class="reminder-popup hidden">
+    <p id="reminder-message">🗓️ Time to save your calendar progress?</p>
+    <button id="reminder-save-now-btn">Save Now</button>
+    <button id="reminder-dismiss-btn">Later</button>
+</div>
+
+<script>
+    // DOM Elements
+    const monthYearElement = document.getElementById('month-year');
+    const calendarGrid = document.getElementById('calendar-grid');
+    const prevMonthButton = document.getElementById('prev-month');
+    const nextMonthButton = document.getElementById('next-month');
+
+    const mainConfirmationPopup = document.getElementById('confirmation-popup');
+    const popupMessageElement = document.getElementById('popup-message');
+    const confirmActionButton = document.getElementById('confirm-action');
+    const cancelActionButton = document.getElementById('cancel-action');
+    const resetColorButton = document.getElementById('reset-color');
+    
+    const fileOpsIconBtn = document.getElementById('file-ops-icon-btn');
+    const fileOptionsPopup = document.getElementById('file-options-popup');
+    const fileOptionsCloseBtn = document.getElementById('file-options-close-btn');
+    const fileOptionsSaveBtn = document.getElementById('file-options-save-btn');
+    const fileOptionsLoadBtn = document.getElementById('file-options-load-btn');
+    const fileStatusMessage = document.getElementById('file-status-message');
+    const fsApiStatus = document.getElementById('fs-api-status');
+
+    const saveReminderPopup = document.getElementById('save-reminder-popup');
+    const reminderSaveNowBtn = document.getElementById('reminder-save-now-btn');
+    const reminderDismissBtn = document.getElementById('reminder-dismiss-btn');
+
+    // State variables
+    let currentDate = new Date();
+    let activeCellForPopup = null;
+    let actionForPopup = null;
+    let newColorForPopup = null;
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const storageKeyPrefix = 'kidAwesomeCalendar_v2_';
+    let fileHandle = null;
+    const IDB_KEY = 'calendarFileHandle';
+    const LAST_SAVE_TIMESTAMP_KEY = 'calendarLastSaveTimestamp';
+    const LAST_REMINDER_DISMISS_KEY = 'calendarLastReminderDismissTimestamp';
+    const FIRST_USE_TIMESTAMP_KEY = 'calendarFirstUseTimestamp';
+
+    function togglePopup(popupElement, show) {
+        if (show) {
+            popupElement.classList.add('show');
+        } else {
+            popupElement.classList.remove('show');
+        }
+    }
+
+    function openDb() { 
+        return new Promise((resolve, reject) => {
+            if (!('indexedDB' in window)) { return reject('IndexedDB not supported'); }
+            const request = indexedDB.open('CalendarDB', 1);
+            request.onupgradeneeded = event => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('fileHandles')) {
+                    db.createObjectStore('fileHandles');
+                }
+            };
+            request.onsuccess = event => resolve(event.target.result);
+            request.onerror = event => reject(event.target.error);
+        });
+    }
+    async function storeFileHandle(handle) {
+        if (!('indexedDB' in window)) { return; }
+        try {
+            const db = await openDb();
+            const tx = db.transaction('fileHandles', 'readwrite');
+            const store = tx.objectStore('fileHandles');
+            if (handle) { await store.put(handle, IDB_KEY); } else { await store.delete(IDB_KEY); }
+            console.log(handle ? 'File handle stored.' : 'File handle cleared.');
+        } catch (error) { console.error('Error storing/clearing file handle:', error); }
+    }
+    async function retrieveFileHandle() {
+        if (!('indexedDB' in window)) { return null; }
+        try {
+            const db = await openDb();
+            const tx = db.transaction('fileHandles', 'readonly');
+            const store = tx.objectStore('fileHandles');
+            const handle = await store.get(IDB_KEY);
+            if (handle) {
+                const options = { mode: 'readwrite' };
+                if (await handle.queryPermission(options) === 'granted') return handle;
+                if (await handle.requestPermission(options) === 'granted') return handle; 
+                console.warn('Permission to stored file handle denied.');
+                fileHandle = null; await storeFileHandle(null); return null;
+            } return null;
+        } catch (error) { console.error('Error retrieving file handle:', error); return null; }
+    }
+    function isFileSystemAccessAPISupported() { return 'showOpenFilePicker' in window && 'showSaveFilePicker' in window; }
+
+    async function saveDataToFile() {
+        const allData = {};
+        let dataFound = false;
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith(storageKeyPrefix)) {
+                allData[key] = localStorage.getItem(key);
+                dataFound = true;
+            }
+        }
+        if (!dataFound && Object.keys(allData).length === 0) {
+            showFileStatus("Nothing to save yet (calendar is empty).", "error");
+            return false;
+        }
+        const jsonData = JSON.stringify(allData, null, 2);
+        try {
+            if (!isFileSystemAccessAPISupported()){ 
+                const element = document.createElement('a');
+                element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(jsonData));
+                const filename = `my_calendar_data_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.txt`;
+                element.setAttribute('download', filename);
+                document.body.appendChild(element); element.click(); document.body.removeChild(element);
+                showFileStatus(`'${filename}' download initiated! (Legacy mode)`, "success");
+                localStorage.setItem(LAST_SAVE_TIMESTAMP_KEY, Date.now().toString());
+                togglePopup(fileOptionsPopup, false); showSaveReminder(false);
+                return true;
+            }
+
+            if (!fileHandle) {
+                fileHandle = await window.showSaveFilePicker({
+                    suggestedName: 'my_calendar_data.txt',
+                    types: [{ description: 'Text Files', accept: { 'text/plain': ['.txt'] } }],
+                });
+                if ('indexedDB' in window) await storeFileHandle(fileHandle);
+            }
+            const permOpts = { mode: 'readwrite' };
+            if (await fileHandle.queryPermission(permOpts) !== 'granted') {
+                if (await fileHandle.requestPermission(permOpts) !== 'granted') {
+                    showFileStatus('Permission denied to save file.', 'error');
+                    fileHandle = null; if ('indexedDB' in window) await storeFileHandle(null); return false;
+                }
+            }
+            const writable = await fileHandle.createWritable();
+            await writable.write(jsonData);
+            await writable.close();
+            showFileStatus(`Calendar saved to '${fileHandle.name}'! 🎉`, "success");
+            localStorage.setItem(LAST_SAVE_TIMESTAMP_KEY, Date.now().toString());
+            togglePopup(fileOptionsPopup, false); 
+            showSaveReminder(false);
+            return true;
+        } catch (err) {
+            console.error('Error saving file:', err);
+            if (err.name === 'AbortError') { showFileStatus('Save cancelled.', "info"); }
+            else { showFileStatus('Could not save. Try again.', 'error'); }
+            if (err.name !== 'AbortError' || !fileHandle) {
+                 fileHandle = null; if ('indexedDB' in window) await storeFileHandle(null);
+            }
+            return false;
+        }
+    }
+
+    async function loadDataFromFile(promptUser = false) {
+         try {
+            if (!isFileSystemAccessAPISupported()){
+                 const input = document.createElement('input');
+                 input.type = 'file';
+                 input.accept = '.txt,.json';
+                 input.style.display = 'none';
+                 document.body.appendChild(input);
+                 input.onchange = async (e) => {
+                     const file = e.target.files[0];
+                     if (!file) { document.body.removeChild(input); return; }
+                     const contents = await file.text();
+                     processLoadedData(contents, file.name);
+                     document.body.removeChild(input); 
+                 };
+                 input.click();
+                 return; 
+            }
+
+            if (!fileHandle && promptUser) {
+                [fileHandle] = await window.showOpenFilePicker({
+                    types: [{ description: 'Text Files', accept: { 'text/plain': ['.txt', '.json'] } }],
+                    multiple: false,
+                });
+                if ('indexedDB' in window) await storeFileHandle(fileHandle);
+            } else if (!fileHandle) { return false; }
+
+            const permOpts = { mode: 'read' };
+            if (await fileHandle.queryPermission(permOpts) !== 'granted') {
+                if (await fileHandle.requestPermission(permOpts) !== 'granted') {
+                    showFileStatus('Permission denied to read file.', 'error');
+                    fileHandle = null; if ('indexedDB' in window) await storeFileHandle(null); return false;
+                }
+            }
+            const file = await fileHandle.getFile();
+            const contents = await file.text();
+            processLoadedData(contents, fileHandle.name);
+            return true; 
+        } catch (err) {
+            console.error('Error loading file:', err);
+             if (err.name === 'AbortError') { showFileStatus('Load cancelled.', "info"); }
+             else if (promptUser) { showFileStatus('Could not load file.', 'error');}
+            if (err.name !== 'AbortError' || !fileHandle) {
+                fileHandle = null; if ('indexedDB' in window) await storeFileHandle(null);
+            }
+            return false;
+        }
+    }
+
+    function processLoadedData(contents, filename) {
+        try {
+            const loadedData = JSON.parse(contents);
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                if (localStorage.key(i).startsWith(storageKeyPrefix)) { keysToRemove.push(localStorage.key(i)); }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            for (const key in loadedData) {
+                if (key.startsWith(storageKeyPrefix) && loadedData.hasOwnProperty(key)) {
+                    localStorage.setItem(key, loadedData[key]);
+                }
+            }
+            renderCalendar(currentDate);
+            showFileStatus(`Calendar loaded from '${filename}'!`, "success");
+            togglePopup(fileOptionsPopup, false);
+        } catch (parseErr) {
+            console.error("Error parsing file content:", parseErr);
+            showFileStatus("Failed to understand file content. Is it the correct file?", "error");
+        }
+    }
+    
+    function saveDataToLocalStorage(year, month, day, color) {
+        const key = `${storageKeyPrefix}${year}-${month}-${day}`;
+        if (color) { localStorage.setItem(key, color); } else { localStorage.removeItem(key); }
+    }
+    function loadDataFromLocalStorage(year, month, day) {
+        const key = `${storageKeyPrefix}${year}-${month}-${day}`;
+        return localStorage.getItem(key);
+    }
+
+    function renderCalendar(dateToRender) {
+        calendarGrid.innerHTML = '';
+        dayNames.forEach(name => {
+            const dayNameCell = document.createElement('div');
+            dayNameCell.classList.add('day-name'); dayNameCell.textContent = name;
+            calendarGrid.appendChild(dayNameCell);
+        });
+        const year = dateToRender.getFullYear(); const month = dateToRender.getMonth();
+        monthYearElement.textContent = `${monthNames[month]} ${year}`;
+        const firstDayOfMonth = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const todayComp = { Y: new Date().getFullYear(), M: new Date().getMonth(), D: new Date().getDate() };
+        for (let i = 0; i < firstDayOfMonth; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.classList.add('date-cell', 'empty'); calendarGrid.appendChild(emptyCell);
+        }
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateCell = document.createElement('div');
+            dateCell.classList.add('date-cell');
+            dateCell.dataset.day = day; dateCell.dataset.month = month; dateCell.dataset.year = year;
+            dateCell.setAttribute('role', 'button'); dateCell.setAttribute('tabindex', '0');
+            dateCell.setAttribute('aria-label', `Date ${day} ${monthNames[month]}`);
+            const dayNumberSpan = document.createElement('span');
+            dayNumberSpan.classList.add('day-number'); dayNumberSpan.textContent = day;
+            dateCell.appendChild(dayNumberSpan);
+            if (year === todayComp.Y && month === todayComp.M && day === todayComp.D) {
+                dateCell.classList.add('today'); dateCell.setAttribute('aria-current', 'date');
+            }
+            const buttonContainer = document.createElement('div');
+            buttonContainer.classList.add('date-cell-buttons');
+            ['green', 'red'].forEach(color => {
+                const btn = document.createElement('button');
+                btn.innerHTML = color === 'green' ? '😊' : '😟';
+                const colorClass = `${color}-bg`;
+                btn.dataset.color = colorClass;
+                btn.setAttribute('aria-label', `Mark day ${day} as ${color}`);
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation(); handleColorButtonClick(dateCell, year, month, day, colorClass);
+                });
+                buttonContainer.appendChild(btn);
+            });
+            dateCell.appendChild(buttonContainer);
+            dateCell.addEventListener('keydown', (e) => {
+                 if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const currentBg = dateCell.classList.contains('green-bg') ? 'green-bg' : (dateCell.classList.contains('red-bg') ? 'red-bg' : null);
+                    if (!currentBg) handleColorButtonClick(dateCell, year, month, day, 'green-bg');
+                    else if (currentBg === 'green-bg') handleColorButtonClick(dateCell, year, month, day, 'red-bg');
+                    else handleColorButtonClick(dateCell, year, month, day, 'green-bg');
+                }
+            });
+            const savedColor = loadDataFromLocalStorage(year, month, day);
+            if (savedColor) {
+                dateCell.classList.add(savedColor);
+                dateCell.setAttribute('aria-label', `Date ${day} ${monthNames[month]}, marked ${savedColor.includes('green') ? 'happy' : 'worried'}`);
+            }
+            calendarGrid.appendChild(dateCell);
+        }
+    }
+    function handleColorButtonClick(cell, year, month, day, chosenColor) {
+        const currentRed = cell.classList.contains('red-bg');
+        const currentGreen = cell.classList.contains('green-bg');
+        const currentColor = currentRed ? 'red-bg' : (currentGreen ? 'green-bg' : null);
+        activeCellForPopup = cell; const friendlyDayDesc = `Day ${day}`;
+        if (!currentColor) {
+            cell.classList.add(chosenColor); saveDataToLocalStorage(year, month, day, chosenColor);
+            createSparkles(cell, chosenColor === 'green-bg' ? '#90ee90' : '#ff7f7f');
+            cell.setAttribute('aria-label', `${friendlyDayDesc}, marked ${chosenColor.includes('green') ? 'happy' : 'worried'}`);
+        } else if (currentColor === chosenColor) {
+            actionForPopup = 'reset';
+            popupMessageElement.textContent = `${friendlyDayDesc} is already this color. Make it plain again?`;
+            resetColorButton.style.display = 'inline-block'; confirmActionButton.style.display = 'none';
+            togglePopup(mainConfirmationPopup, true);
+        } else {
+            actionForPopup = 'change'; newColorForPopup = chosenColor;
+            const friendlyColorName = chosenColor === 'green-bg' ? 'happy green 😊' : 'worried red 😟';
+            popupMessageElement.textContent = `Change ${friendlyDayDesc} to ${friendlyColorName}?`;
+            resetColorButton.style.display = 'none'; confirmActionButton.style.display = 'inline-block';
+            togglePopup(mainConfirmationPopup, true);
+        }
+    }
+    function hideMainConfirmationPopup() {
+        togglePopup(mainConfirmationPopup, false);
+        if(activeCellForPopup) activeCellForPopup.focus();
+        setTimeout(() => { activeCellForPopup = null; actionForPopup = null; newColorForPopup = null; }, 300);
+    }
+    confirmActionButton.addEventListener('click', () => {
+        if (!activeCellForPopup || actionForPopup !== 'change' || !newColorForPopup) return;
+        const day = parseInt(activeCellForPopup.dataset.day); const month = parseInt(activeCellForPopup.dataset.month);
+        const year = parseInt(activeCellForPopup.dataset.year); const friendlyDayDesc = `Day ${day}`;
+        activeCellForPopup.classList.remove('red-bg', 'green-bg'); activeCellForPopup.classList.add(newColorForPopup);
+        saveDataToLocalStorage(year, month, day, newColorForPopup);
+        createSparkles(activeCellForPopup, newColorForPopup === 'green-bg' ? '#90ee90' : '#ff7f7f');
+        activeCellForPopup.setAttribute('aria-label', `${friendlyDayDesc}, marked ${newColorForPopup.includes('green') ? 'happy' : 'worried'}`);
+        hideMainConfirmationPopup();
+    });
+    resetColorButton.addEventListener('click', () => {
+        if (!activeCellForPopup || actionForPopup !== 'reset') return;
+        const day = parseInt(activeCellForPopup.dataset.day); const month = parseInt(activeCellForPopup.dataset.month);
+        const year = parseInt(activeCellForPopup.dataset.year); const friendlyDayDesc = `Day ${day}`;
+        activeCellForPopup.classList.remove('red-bg', 'green-bg');
+        saveDataToLocalStorage(year, month, day, null);
+        activeCellForPopup.setAttribute('aria-label', `${friendlyDayDesc}`);
+        hideMainConfirmationPopup();
+    });
+    cancelActionButton.addEventListener('click', hideMainConfirmationPopup);
+    prevMonthButton.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(currentDate); });
+    nextMonthButton.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(currentDate); });
+    function createSparkles(element, color = 'gold') { /* ... (same logic as before, ensure it still works with transparent body) ... */ }
+    
+    function showFileStatus(message, type = "success") {
+        if(fileStatusMessage) {
+            fileStatusMessage.textContent = message;
+            fileStatusMessage.style.color = type === "success" ? "green" : (type === "error" ? "red" : "#cc8400");
+            setTimeout(() => { if(fileStatusMessage) fileStatusMessage.textContent = ''; }, 5000);
+        } else { console.log(`File Status (${type}): ${message}`); }
+    }
+    
+    fileOpsIconBtn.addEventListener('click', () => {
+        togglePopup(fileOptionsPopup, true);
+        if (isFileSystemAccessAPISupported()) {
+            fsApiStatus.textContent = 'Smart file saving available!';
+            fsApiStatus.style.color = 'green';
+            fileOptionsSaveBtn.disabled = false;
+            fileOptionsLoadBtn.disabled = false;
+        } else {
+            fsApiStatus.innerHTML = 'Direct file access not fully supported.<br>Using basic download/upload.';
+            fsApiStatus.style.color = 'orange';
+            fileOptionsSaveBtn.disabled = false;
+            fileOptionsLoadBtn.disabled = false;
+        }
+    });
+    fileOptionsCloseBtn.addEventListener('click', () => togglePopup(fileOptionsPopup, false));
+    fileOptionsSaveBtn.addEventListener('click', saveDataToFile);
+    fileOptionsLoadBtn.addEventListener('click', () => loadDataFromFile(true));
+
+    function showSaveReminder(show = true) {
+        if (show) { saveReminderPopup.classList.remove('hidden');} else { saveReminderPopup.classList.add('hidden');}
+    }
+    reminderSaveNowBtn.addEventListener('click', async () => {
+        const saved = await saveDataToFile(); 
+        if (saved) { 
+            showSaveReminder(false); 
+        } else { 
+            togglePopup(fileOptionsPopup, true); 
+            showFileStatus("Save failed from reminder. Please try again via File Options.", "error");
+        }
+    });
+    reminderDismissBtn.addEventListener('click', () => {
+        localStorage.setItem(LAST_REMINDER_DISMISS_KEY, Date.now().toString()); showSaveReminder(false);
+    });
+    function checkWeeklySaveReminder() {
+        const now = Date.now(); let firstUse = localStorage.getItem(FIRST_USE_TIMESTAMP_KEY);
+        if (!firstUse) { localStorage.setItem(FIRST_USE_TIMESTAMP_KEY, now.toString()); firstUse = now.toString(); }
+        const lastSave = localStorage.getItem(LAST_SAVE_TIMESTAMP_KEY);
+        const lastDismiss = localStorage.getItem(LAST_REMINDER_DISMISS_KEY);
+        const sevenDaysInMillis = 7 * 24 * 60 * 60 * 1000; const oneDayInMillis = 1 * 24 * 60 * 60 * 1000;
+        let shouldRemind = false;
+        if (lastSave) { if (now - parseInt(lastSave) >= sevenDaysInMillis) { shouldRemind = true; } }
+        else { if (now - parseInt(firstUse) >= sevenDaysInMillis) { shouldRemind = true; } }
+        if (shouldRemind) {
+            if (lastDismiss) { if (now - parseInt(lastDismiss) < oneDayInMillis) { shouldRemind = false; } }
+            if (shouldRemind) { showSaveReminder(true); }
+        } else { showSaveReminder(false); }
+    }
+
+    async function initializeApp() {
+        if (!isFileSystemAccessAPISupported()) {
+            fileOpsIconBtn.title = "File features may use basic download/upload";
+        }
+        if (isFileSystemAccessAPISupported() && 'indexedDB' in window) { 
+             retrieveFileHandle().then(handle => {
+                if (handle) {
+                    fileHandle = handle;
+                    loadDataFromFile(false); 
+                }
+            });
+        }
+        renderCalendar(currentDate);
+        checkWeeklySaveReminder();
+    }
+    
+    initializeApp();
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (mainConfirmationPopup.classList.contains('show')) { hideMainConfirmationPopup(); }
+            if (fileOptionsPopup.classList.contains('show')) { togglePopup(fileOptionsPopup, false); }
+            if (!saveReminderPopup.classList.contains('hidden')) {
+                showSaveReminder(false); localStorage.setItem(LAST_REMINDER_DISMISS_KEY, Date.now().toString());
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
