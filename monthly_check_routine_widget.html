@@ -3,13 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kid's Awesome Monthly Calendar - Neutral Change Button</title>
+    <title>Kid's Awesome Monthly Calendar - Optimized Space</title>
     <style>
         body {
             font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             min-height: 100vh; background-color: #ffffff; 
-            margin: 10px; margin-bottom: 20px; color: #333;
+            /* MODIFIED: Reduced margins */
+            margin-top: 5px;
+            margin-left: 5px;
+            margin-right: 5px;
+            margin-bottom: 10px; 
+            color: #333;
             user-select: none; -webkit-tap-highlight-color: transparent;
         }
         .calendar-widget {
@@ -96,18 +101,8 @@
         .popup-content-base p { margin-bottom: 15px; font-size: 1em; color: #444; line-height: 1.4; }
         .popup-content-base button:not(.popup-close-btn) { background-color: transparent; border: 1px solid #ccc;  color: #337ab7; padding: 8px 15px; border-radius: 5px; font-size: 0.95em; font-weight: bold; cursor: pointer; margin: 8px 5px; transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease; min-width: 100px; }
         .popup-content-base button:not(.popup-close-btn):hover { background-color: #f0f0f0; border-color: #aaa; }
-        
-        /* MODIFIED: #confirm-action style changed to neutral grey */
-        #confirm-action { 
-            background-color: #adb5bd; /* Neutral Grey */
-            color: white; 
-            border-color: #adb5bd; 
-        }
-        #confirm-action:hover { 
-            background-color: #929aab; /* Darker Neutral Grey */
-            border-color: #868e96; 
-        }
-
+        #confirm-action { background-color: #adb5bd; color: white; border-color: #adb5bd; } /* Neutral Grey */
+        #confirm-action:hover { background-color: #929aab; border-color: #868e96; }
         #reset-color { background-color: #f0ad4e; color:white; border-color:#f0ad4e;}
         #reset-color:hover { background-color: #ec971f; border-color:#ec971f;}
         #cancel-action { background-color: #d9534f; color: white; border-color: #d9534f; }
@@ -167,7 +162,7 @@
 <div id="save-reminder-popup" class="reminder-popup hidden"></div>
 
 <script>
-    // DOM Elements from base script
+    // DOM Elements
     const monthYearElement = document.getElementById('month-year');
     const calendarGrid = document.getElementById('calendar-grid');
     const prevMonthButton = document.getElementById('prev-month');
@@ -217,7 +212,6 @@
         return localStorage.getItem(key); 
     }
     
-    // --- File System Access API & IndexedDB (Unchanged from your base) ---
     function openDb() { return new Promise((resolve, reject) => { if (!('indexedDB' in window)) { return reject('IndexedDB not supported'); } const request = indexedDB.open('CalendarDB', 1); request.onupgradeneeded = event => { const db = event.target.result; if (!db.objectStoreNames.contains('fileHandles')) { db.createObjectStore('fileHandles'); } }; request.onsuccess = event => resolve(event.target.result); request.onerror = event => reject(event.target.error); }); }
     async function storeFileHandle(handle) { if (!('indexedDB' in window)) { return; } try { const db = await openDb(); const tx = db.transaction('fileHandles', 'readwrite'); const store = tx.objectStore('fileHandles'); if (handle) { await store.put(handle, IDB_KEY); } else { await store.delete(IDB_KEY); } console.log(handle ? 'File handle stored.' : 'File handle cleared.'); } catch (error) { console.error('Error storing/clearing file handle:', error); } }
     async function retrieveFileHandle() { if (!('indexedDB' in window)) { return null; } try { const db = await openDb(); const tx = db.transaction('fileHandles', 'readonly'); const store = tx.objectStore('fileHandles'); const handle = await store.get(IDB_KEY); if (handle) { const options = { mode: 'readwrite' }; if (typeof handle.queryPermission === 'function') { if (await handle.queryPermission(options) === 'granted') return handle; if (await handle.requestPermission(options) === 'granted') return handle; } else { return handle; } console.warn('Permission to stored file handle denied.'); fileHandle = null; await storeFileHandle(null); return null; } return null; } catch (error) { console.error('Error retrieving file handle:', error); return null; } }
@@ -227,17 +221,13 @@
     function processLoadedData(contents, filename) { try { const loadedData = JSON.parse(contents); const keysToRemove = []; for (let i = 0; i < localStorage.length; i++) { if (localStorage.key(i).startsWith(storageKeyPrefix)) { keysToRemove.push(localStorage.key(i)); } } keysToRemove.forEach(key => localStorage.removeItem(key)); for (const key in loadedData) { if (loadedData.hasOwnProperty(key)) { localStorage.setItem(key, loadedData[key]); } } renderCalendar(currentDate); showFileStatus(`Loaded from '${filename}'!`, "success"); togglePopup(fileOptionsPopup, false); } catch (parseErr) { console.error("Error parsing file content:", parseErr); showFileStatus("Failed to understand file content. Is it correct?", "error"); } }
     function showFileStatus(message, type = "success") { if(fileStatusMessage) { fileStatusMessage.textContent = message; fileStatusMessage.style.color = type === "success" ? "green" : (type === "error" ? "red" : "#cc8400"); setTimeout(() => { if(fileStatusMessage) fileStatusMessage.textContent = ''; }, 5000); } else { console.log(`File Status (${type}): ${message}`); } }
 
-
-    // --- MODIFIED Calendar Cell Interaction Logic ---
     function updateCellVisuals(cell, year, month, day) {
-        const currentBgClass = loadDataFromLocalStorage(year, month, day); // "green-bg", "red-bg", or null
+        const currentBgClass = loadDataFromLocalStorage(year, month, day); 
         const dayNumberSpan = cell.querySelector('.day-number');
         const buttonContainer = cell.querySelector('.date-cell-buttons');
         const statusEmojiDisplay = cell.querySelector('.status-emoji-display');
 
-        if (!buttonContainer || !statusEmojiDisplay || !dayNumberSpan) { 
-            console.error("Cell elements missing for update:", cell); return; 
-        }
+        if (!buttonContainer || !statusEmojiDisplay || !dayNumberSpan) { return; }
 
         cell.classList.remove('red-bg', 'green-bg', 'show-status-emoji', 'cell-marked');
         dayNumberSpan.style.position = 'static'; 
@@ -268,7 +258,6 @@
     }
 
     function renderCalendar(dateToRender) {
-        console.log("renderCalendar called"); // DEBUG
         calendarGrid.innerHTML = '';
         dayNames.forEach(name => {
             const dayNameCell = document.createElement('div');
@@ -304,7 +293,7 @@
             greenButton.setAttribute('aria-label', `Mark day ${day} as good`);
             greenButton.addEventListener('click', (e) => {
                 e.stopPropagation(); 
-                handleInitialSmileyClick(dateCell, year, month, day, 'green-bg'); // Saves 'green-bg'
+                handleInitialSmileyClick(dateCell, year, month, day, 'green-bg');
             });
             buttonContainer.appendChild(greenButton);
 
@@ -313,7 +302,7 @@
             redButton.setAttribute('aria-label', `Mark day ${day} as bad`);
             redButton.addEventListener('click', (e) => {
                 e.stopPropagation(); 
-                handleInitialSmileyClick(dateCell, year, month, day, 'red-bg'); // Saves 'red-bg'
+                handleInitialSmileyClick(dateCell, year, month, day, 'red-bg');
             });
             buttonContainer.appendChild(redButton);
             dateCell.appendChild(buttonContainer);
@@ -330,38 +319,33 @@
         }
     }
 
-    // NEW: Handles initial click on 😊 or 😟. NO POPUP.
     function handleInitialSmileyClick(cell, year, month, day, colorClassToSet) { 
-        saveDataToLocalStorage(year, month, day, colorClassToSet); // Saves 'green-bg' or 'red-bg'
+        saveDataToLocalStorage(year, month, day, colorClassToSet);
         updateCellVisuals(cell, year, month, day);
         createSparkles(cell, colorClassToSet === 'green-bg' ? '#d0f0d0' : '#ffd5d5');
     }
 
-    // NEW: Handles tap on an already marked cell. This OPENS THE EXISTING POPUP.
     function handleMarkedCellTap(cell, year, month, day, currentStateClass) {
-        activeCellForPopup = cell; // Global from base script, used by popup listeners
-        
-        popupMessageElement.textContent = `Day is ${currentStateClass === 'green-bg' ? EMOJI_GOOD : EMOJI_BAD}. Options:`;
+        activeCellForPopup = cell; 
+        popupMessageElement.textContent = `Day is ${currentStateClass === 'green-bg' ? EMOJI_GOOD : EMOJI_BAD}. Change or Reset?`;
         
         if (currentStateClass === 'green-bg') {
             confirmActionButton.textContent = `Change to 😟 (Red)`;
-            actionForPopup = 'change';      // For confirmActionButton listener
-            newColorForPopup = 'red-bg';    // Target class for change
-        } else { // currentStateClass is 'red-bg'
+            actionForPopup = 'change';      
+            newColorForPopup = 'red-bg';  
+        } else { 
             confirmActionButton.textContent = `Change to 😊 (Green)`;
             actionForPopup = 'change';
             newColorForPopup = 'green-bg';
         }
-        resetColorButton.textContent = "Reset"; // Text change as requested
+        resetColorButton.textContent = "Reset"; // Text change
         
-        // Ensure buttons are visible and ready for the original logic
         confirmActionButton.style.display = 'inline-block'; 
         resetColorButton.style.display = 'inline-block';
 
         togglePopup(mainConfirmationPopup, true);
     }
     
-    // Listener for `confirmActionButton` (from base script, logic is fine, uses globals)
     confirmActionButton.addEventListener('click', () => { 
         if (!activeCellForPopup || actionForPopup !== 'change' || !newColorForPopup) {
             hideMainConfirmationPopup(); return;
@@ -376,56 +360,46 @@
         hideMainConfirmationPopup();
     });
 
-    // Listener for `resetColorButton` (from base script, logic adapted slightly for direct reset)
     resetColorButton.addEventListener('click', () => { 
         if (!activeCellForPopup) { hideMainConfirmationPopup(); return; }
         const day = parseInt(activeCellForPopup.dataset.day);
         const month = parseInt(activeCellForPopup.dataset.month);
         const year = parseInt(activeCellForPopup.dataset.year);
 
-        // Original script's reset logic (which sets actionForPopup='reset') is now directly implied by this button
         saveDataToLocalStorage(year, month, day, null); 
         updateCellVisuals(activeCellForPopup, year, month, day); 
         hideMainConfirmationPopup();
     });
     
-    function hideMainConfirmationPopup() { // From base script
+    function hideMainConfirmationPopup() { 
         togglePopup(mainConfirmationPopup, false);
         activeCellForPopup = null; 
         actionForPopup = null; 
         newColorForPopup = null;
     }
-    cancelActionButton.addEventListener('click', hideMainConfirmationPopup); // From base
+    cancelActionButton.addEventListener('click', hideMainConfirmationPopup);
 
-    // --- Nav, Sparkles, File Ops Icon listeners & functions (from base script - UNCHANGED) ---
     prevMonthButton.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(currentDate); });
     nextMonthButton.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(currentDate); });
     function createSparkles(element, color = 'gold') { /* ... (Same as base script) ... */ }
     
-    // Ensure File Ops button listener is exactly as in base and working
-    if (fileOpsIconBtn) {
+    // Ensure File Ops button listener is correctly set up and uses correct popup
+    if (fileOpsIconBtn && fileOptionsPopup) {
         fileOpsIconBtn.addEventListener('click', () => {
-            console.log("File Ops Icon (💾) clicked. Attempting to open #file-options-popup."); // DEBUG
-            if (!fileOptionsPopup) {
-                console.error("#fileOptionsPopup element not found!"); return;
-            }
             togglePopup(fileOptionsPopup, true);
             if (isFileSystemAccessAPISupported()) {
-                if (fsApiStatus) {
-                    fsApiStatus.textContent = 'Smart file saving available!'; fsApiStatus.style.color = 'green';
-                }
+                if (fsApiStatus) { fsApiStatus.textContent = 'Smart file saving available!'; fsApiStatus.style.color = 'green'; }
                 if(fileOptionsSaveBtn) fileOptionsSaveBtn.disabled = false; 
                 if(fileOptionsLoadBtn) fileOptionsLoadBtn.disabled = false;
             } else {
-                if (fsApiStatus) {
-                    fsApiStatus.innerHTML = 'Direct file access not fully supported.<br>Using basic download/upload.';
-                    fsApiStatus.style.color = 'orange';
-                }
+                if (fsApiStatus) { fsApiStatus.innerHTML = 'Direct file access not fully supported.<br>Using basic download/upload.'; fsApiStatus.style.color = 'orange'; }
                 if(fileOptionsSaveBtn) fileOptionsSaveBtn.disabled = false; 
                 if(fileOptionsLoadBtn) fileOptionsLoadBtn.disabled = false;
             }
         });
-    } else { console.error("#file-ops-icon-btn not found!"); }
+    } else {
+        console.error("File operations button or popup not found on init.");
+    }
 
     if (fileOptionsCloseBtn) fileOptionsCloseBtn.addEventListener('click', () => togglePopup(fileOptionsPopup, false));
     if (fileOptionsSaveBtn) fileOptionsSaveBtn.addEventListener('click', saveDataToFile);
@@ -448,15 +422,28 @@
                 }
              } catch(err) { console.error("Initial file handle/load error during init:", err); }
         }
-        // Always render, loadDataFromFile will call renderCalendar again if it loads data.
-        // This ensures if load fails or no handle, calendar still renders.
-        // If loadDataFromFile calls render, this is a second render, but should be harmless.
-        console.log("Calling renderCalendar from initializeApp. initialRenderDoneByLoad:", initialRenderDoneByLoad);
-        renderCalendar(currentDate); 
+        // Always call renderCalendar. If loadDataFromFile succeeded, it would have already called it.
+        // If not, this call ensures the calendar is drawn.
+        // To prevent double render, processLoadedData should NOT call renderCalendar,
+        // and initializeApp should ALWAYS call renderCalendar once after attempting load.
+        // Let's adjust that:
+        // processLoadedData will set a flag or return a value, and initializeApp decides to render.
+        // For now, the current logic might cause a double render if auto-load happens, but should still show.
+        if (!initialRenderDoneByLoad) { // If loadDataFromFile didn't render
+             console.log("Calling initial renderCalendar in initializeApp because loadDataFromFile didn't (or didn't run).");
+             renderCalendar(currentDate); 
+        } else {
+             console.log("Initial render assumed to be done by loadDataFromFile.");
+        }
     }
     
     initializeApp();
-    document.addEventListener('keydown', (e) => { /* ... (Same from base script) ... */ });
+    document.addEventListener('keydown', (e) => { 
+        if (e.key === 'Escape') {
+            if (mainConfirmationPopup && mainConfirmationPopup.classList.contains('show')) { hideMainConfirmationPopup(); }
+            if (fileOptionsPopup && fileOptionsPopup.classList.contains('show')) { togglePopup(fileOptionsPopup, false); }
+        }
+     });
 </script>
 
 </body>
